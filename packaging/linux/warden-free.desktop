@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Warden Free
+Comment=ClamAV-powered filesystem scanning
+Exec=warden-free
+Icon=warden-free
+Terminal=false
+Categories=Utility;Security;

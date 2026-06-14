@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="icons/Warden-Logo.png">../assets/Warden-Logo-Transparent.png</file>
+    </qresource>
+</RCC>
