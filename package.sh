@@ -6,6 +6,7 @@ BUILD_DIR="${SCRIPT_DIR}/build-release"
 DIST_DIR="${SCRIPT_DIR}/dist"
 APPDIR="${DIST_DIR}/AppDir"
 PROJECT_NAME="warden-free"
+ROOT_TOOLS_DIR="${SCRIPT_DIR}/../tools"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -53,6 +54,20 @@ build_release() {
     cmake --build "${BUILD_DIR}" -j"$(nproc)"
 }
 
+resolve_linuxdeployqt() {
+    if command -v linuxdeployqt >/dev/null 2>&1; then
+        command -v linuxdeployqt
+        return 0
+    fi
+
+    if [[ -x "${ROOT_TOOLS_DIR}/linuxdeployqt" ]]; then
+        printf '%s\n' "${ROOT_TOOLS_DIR}/linuxdeployqt"
+        return 0
+    fi
+
+    return 1
+}
+
 package_deb() {
     build_release
     mkdir -p "${DIST_DIR}"
@@ -70,7 +85,8 @@ package_deb() {
 
 package_appimage() {
     build_release
-    if ! command -v linuxdeployqt >/dev/null 2>&1; then
+    local linuxdeployqt_bin
+    if ! linuxdeployqt_bin="$(resolve_linuxdeployqt)"; then
         print_error "linuxdeployqt is required for AppImage packaging. Install it and rerun './package.sh appimage'."
         exit 1
     fi
@@ -84,7 +100,7 @@ package_appimage() {
     print_progress "Generating AppImage"
     (
         cd "${DIST_DIR}"
-        linuxdeployqt "${APPDIR}/usr/share/applications/warden-free.desktop" -appimage
+        APPIMAGE_EXTRACT_AND_RUN=1 "${linuxdeployqt_bin}" "${APPDIR}/usr/share/applications/warden-free.desktop" -appimage
     )
 
     local appimage_path
