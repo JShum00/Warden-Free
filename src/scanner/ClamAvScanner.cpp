@@ -172,10 +172,18 @@ ClamAvScanResult ClamAvScanner::scanFile(const std::filesystem::path &filePath,
         finding.path = filePath;
         finding.threatType = core::ThreatType::ClamAvSignature;
         finding.severity = severityFromSignatureName(finding.name);
+        finding.classification = core::inferFindingCategory(finding.threatType,
+                                                            core::DetectionSource::Signature,
+                                                            finding.severity);
         finding.source = "ClamAV";
+        finding.detectionEngine = "ClamAV";
+        finding.detectionSource = core::DetectionSource::Signature;
         finding.description = "ClamAV matched the file against its signature database.";
+        finding.operatorSummary = finding.description;
         finding.recommendedAction = "Quarantine the file and validate whether the detection is expected.";
         finding.sha256 = sha256;
+        finding.confidenceScore = 0.97;
+        finding.triggeredRules = {"rule: clamav-signature-match"};
 
         std::error_code fileSizeError;
         finding.fileSize = std::filesystem::file_size(filePath, fileSizeError);

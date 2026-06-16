@@ -1,5 +1,6 @@
 #include "warden/scanner/FileWalker.h"
 
+#include <sstream>
 #include <type_traits>
 
 namespace {
@@ -24,7 +25,8 @@ void FileWalker::walk(const std::filesystem::path &rootPath,
                       const bool includeHidden,
                       core::ScanStats &stats,
                       std::vector<std::string> &warnings,
-                      const FileCallback &callback)
+                      const FileCallback &callback,
+                      const CancellationCallback &cancellationCallback)
 {
     if (rootPath.empty()) {
         appendWarning(warnings, "File walker received an empty scan root.");
@@ -56,6 +58,10 @@ void FileWalker::walk(const std::filesystem::path &rootPath,
 
     const auto iterateDirectory = [&](auto &iterator, const auto &endSentinel) {
         for (; iterator != endSentinel; iterator.increment(errorCode)) {
+            if (cancellationCallback && cancellationCallback()) {
+                return;
+            }
+
             if (errorCode) {
                 appendWarning(warnings, "Directory iteration error under " + rootPath.string() + ": " + errorCode.message());
                 errorCode.clear();
@@ -138,6 +144,32 @@ void FileWalker::walk(const std::filesystem::path &rootPath,
     }
 
     iterateDirectory(iterator, endSentinel);
+}
+
+std::vector<std::filesystem::path> FileWalker::collectFiles(const std::filesystem::path &rootPath,
+                                                            const bool recursive,
+                                                            const bool includeHidden,
+                                                            core::ScanStats &stats,
+                                                            std::vector<std::string> &warnings,
+                                                            const DiscoveryCallback &callback,
+                                                            const CancellationCallback &cancellationCallback)
+{
+    std::vector<std::filesystem::path> files;
+    walk(
+        rootPath,
+        recursive,
+        includeHidden,
+        stats,
+        warnings,
+        [&](const std::filesystem::directory_entry &entry) {
+            files.push_back(entry.path());
+            if (callback) {
+                callback(entry.path(), stats);
+            }
+        },
+        cancellationCallback
+    );
+    return files;
 }
 
 } // namespace warden::scanner

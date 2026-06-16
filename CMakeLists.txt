@@ -13,13 +13,14 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Concurrent Core Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Concurrent Core Sql Widgets)
 find_package(OpenSSL REQUIRED)
 find_path(CLAMAV_INCLUDE_DIR NAMES clamav.h REQUIRED)
 find_library(CLAMAV_LIBRARY NAMES clamav REQUIRED)
 find_library(FRESHCLAM_LIBRARY NAMES freshclam)
 
 set(WARDEN_FREE_COMMON_SOURCES
+    src/core/ThreatAggregation.cpp
     src/scanner/ClamAvScanner.cpp
     src/scanner/ClamAvOnlyCoordinator.cpp
     src/scanner/FileWalker.cpp
@@ -30,6 +31,7 @@ set(WARDEN_FREE_COMMON_SOURCES
     headers/warden/bridge/ClamAvBridgeProtocol.h
     headers/warden/bridge/ClamAvBridgeService.h
     headers/warden/core/ScanTypes.h
+    headers/warden/core/ThreatAggregation.h
     headers/warden/network/DefinitionUpdater.h
     headers/warden/scanner/ClamAvOnlyCoordinator.h
     headers/warden/scanner/ClamAvScanner.h
@@ -38,12 +40,26 @@ set(WARDEN_FREE_COMMON_SOURCES
     headers/warden/scanner/Sha256Hasher.h
 )
 
+set(WARDEN_FREE_GUI_SOURCES
+    src/MainWindow.cpp
+    src/core/AppPaths.cpp
+    src/scanner/FileScanWorker.cpp
+    src/scanner/HeuristicAnalyzer.cpp
+    src/scanner/ScanCoordinator.cpp
+    src/storage/StateStore.cpp
+    headers/MainWindow.h
+    headers/warden/core/AppPaths.h
+    headers/warden/scanner/FileScanWorker.h
+    headers/warden/scanner/HeuristicAnalyzer.h
+    headers/warden/scanner/ScanCoordinator.h
+    headers/warden/storage/StateStore.h
+)
+
 add_executable(warden-free
     src/main.cpp
-    src/MainWindow.cpp
     resources/warden_resources.qrc
     ${WARDEN_FREE_COMMON_SOURCES}
-    headers/MainWindow.h
+    ${WARDEN_FREE_GUI_SOURCES}
 )
 
 if(WIN32)
@@ -74,6 +90,11 @@ foreach(target warden-free warden-clamav-bridge)
         target_link_libraries(${target} PRIVATE ${FRESHCLAM_LIBRARY})
     endif()
 endforeach()
+
+target_link_libraries(warden-free
+    PRIVATE
+        Qt6::Sql
+)
 
 install(TARGETS warden-free warden-clamav-bridge
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
